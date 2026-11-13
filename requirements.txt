@@ -1,0 +1,5 @@
+langgraph==1.2.20
+openai>=1.30
+pydantic>=2.7
+pandas>=2.0
+matplotlib>=3.7
