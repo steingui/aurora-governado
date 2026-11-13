@@ -7,16 +7,16 @@ Analista SQL e Auditor) para uma solução **governada, observável e avaliada**
 
 O notebook é a entrega principal e foi construído para o **Google Colab**. O único
 requisito externo é a chave da API do LLM. Sem chave, tudo roda em modo offline com
-`MockLLM`: 23 testes, demonstração de HITL e avaliação completa.
+`MockLLM`: 25 testes, demonstração de HITL e avaliação completa.
 
 ## O que a entrega contém
 
 | Requisito | Implementação |
 |---|---|
 | Guardrails e controles de execução | validação de entrada, SQL somente leitura, allowlist de tabelas, timeout, limite de linhas, orçamento de propostas/revisões e sanitização de saída |
-| Human-in-the-Loop | `interrupt` do LangGraph com cartão de aprovação (finalidade, base legal, risco, SQL, PII, SLA); decisões **aprovar**, **rejeitar** e **ajustar** |
+| Human-in-the-Loop | `interrupt` do LangGraph com cartão de aprovação (finalidade, base legal, risco, SQL, PII, SLA); decisões **aprovar**, **rejeitar** e **ajustar**; função opcional `demo_aprovacao_manual()` para decisão humana real |
 | Audit log | trilha append-only com `correlation_id`, ator, ação, resultado, severidade, política, `prev_hash` e `hash`; consulta, exportação JSONL e verificação de integridade |
-| LGPD | catálogo de classificação por coluna, finalidades e bases legais, titular único, minimização, retenção, mascaramento e relatório de conformidade baseado em evidências |
+| LGPD | catálogo de classificação por coluna, finalidades e bases legais, titular único, minimização, retenção, mascaramento, **redação de PII na entrada antes do LLM** e relatório de conformidade baseado em evidências |
 | Métricas | qualidade, sucesso da tarefa, conformidade, auditabilidade, confiabilidade, erros, bloqueios, escalonamento, HITL, custo, interações e latência (média/p95) |
 | Avaliação | ablação **G0** (sem governança) × **G1** (guardrails + audit) × **G2** (completo com HITL), 10 cenários × 3 repetições = 90 execuções |
 
@@ -39,6 +39,15 @@ trilha auditável.
 > simulada (10 ms/chamada) para comparar o overhead de interações. A demo real
 > complementa com o provedor configurado.
 
+## Privacidade e exposição
+
+- **Nenhuma chave real** está no repositório ou no notebook. A chave é lida em runtime de Secrets/env e nunca é impressa, logada ou gravada.
+- O DW é **sintético**; não há dado de cliente real.
+- Os valores usados nos testes (`000.000.000-00`, `teste@exemplo.invalid`) são fictícios/inválidos e existem apenas para verificar a redação.
+- **PII na entrada** (CPF, CNPJ, e-mail, telefone) é mascarada antes de qualquer chamada ao LLM; o texto original não é enviado ao provedor nem gravado no audit.
+- O audit log remove campos sensíveis e padrões de PII; as saídas também passam por sanitização.
+- O repositório é público apenas com esse conteúdo sintético. Se a preferência for não expor nem o código, ele pode ser tornado privado.
+
 ## Como executar no Colab
 
 1. Abra o notebook no Colab (ou faça upload do `.ipynb`).
@@ -57,6 +66,7 @@ modo offline. Nenhuma chave é impressa ou gravada no arquivo.
 |---|---|---|
 | `sk-or-...` | OpenRouter | modelos `:free` com descoberta dinâmica e fallback |
 | `oc_sk_...` | OpenCode Zen | `deepseek-v4.1-flash`, `claude-haiku-5-5`, `glm-5.3-flash` |
+| `sk-...` (exceto `sk-or-...`) | OpenAI direto | `gpt-4.1-mini`, `gpt-4o-mini` |
 
 ## Estrutura do notebook
 
@@ -66,7 +76,7 @@ modo offline. Nenhuma chave é impressa ou gravada no arquivo.
 | 2 | setup, DW, catálogo LGPD, contratos, audit log, métricas, camada LLM, PDP/PEP e perfis |
 | 3 | grafo governado, `interrupt`, orçamento e instrumentação |
 | 4 | demonstração offline: aprovar, rejeitar e comparar G0/G1/G2 |
-| 5 | 23 testes offline |
+| 5 | 25 testes offline |
 | 6 | avaliação, tabelas e gráficos |
 | 7 | relatório de conformidade LGPD (G2 aprovado; contraste G0 reprovado) |
 | 8 | demonstração opcional com LLM real |
@@ -76,10 +86,12 @@ modo offline. Nenhuma chave é impressa ou gravada no arquivo.
 
 - integridade do audit log (hash chain) e ausência de PII no log;
 - classificação LGPD completa do DW;
+- **PII na entrada:** CPF/CNPJ/e-mail/telefone são redigidos antes do LLM; o teste verifica que o valor não aparece nas mensagens enviadas nem no audit;
 - política: agregado, finalidade ausente, PII massiva, titular único, `SELECT *`;
 - HITL: aprovar executa mascarado; rejeitar não executa; G1 fail-closed;
 - guardrails: destrutivo, prompt injection, SQL inválido, sanitização;
 - orçamento, checkpoint/replay, métricas, auditoria completa e resiliência a falha do LLM;
+- detecção de provedores OpenRouter, OpenCode Zen e OpenAI direto;
 - relatório LGPD;
 - contraste intencional: o baseline G0 vaza PII (teste documenta o risco).
 
