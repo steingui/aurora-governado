@@ -1,5 +1,7 @@
 # Sistema Agêntico Governado e Avaliado — Banco Aurora
 
+[![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/steingui/aurora-governado/blob/main/sistema_agentico_governado_aurora.ipynb)
+
 Evolução do sistema multiagente da Entrega II (Coordenador, Especialista de Domínio,
 Analista SQL e Auditor) para uma solução **governada, observável e avaliada**.
 
